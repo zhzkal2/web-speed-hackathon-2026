@@ -11,14 +11,14 @@ ENV PNPM_HOME=/pnpm
 
 WORKDIR /app
 RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
-RUN --mount=type=cache,target=/root/.npm npm install -g pnpm@${PNPM_VERSION}
+RUN npm install -g pnpm@${PNPM_VERSION}
 
 FROM base AS build
 
 COPY ./application/package.json ./application/pnpm-lock.yaml ./application/pnpm-workspace.yaml ./
 COPY ./application/client/package.json ./client/package.json
 COPY ./application/server/package.json ./server/package.json
-RUN --mount=type=cache,target=/pnpm/store pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 COPY ./application .
 
@@ -29,7 +29,7 @@ RUN for gif in public/movies/*.gif; do \
     ffmpeg -i "$gif" -c:v libx264 -crf 28 -preset fast -an -movflags +faststart -y "${gif%.gif}.mp4" && echo "Converted: $gif" || echo "Skipped: $gif"; \
   done
 
-RUN --mount=type=cache,target=/pnpm/store CI=true pnpm install --frozen-lockfile --prod --filter @web-speed-hackathon-2026/server
+RUN CI=true pnpm install --frozen-lockfile --prod --filter @web-speed-hackathon-2026/server
 
 FROM base
 
