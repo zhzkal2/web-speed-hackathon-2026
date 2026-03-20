@@ -43,11 +43,7 @@ const TermContainer = lazy(() =>
     default: m.TermContainer,
   })),
 );
-const TimelineContainer = lazy(() =>
-  import("@web-speed-hackathon-2026/client/src/containers/TimelineContainer").then((m) => ({
-    default: m.TimelineContainer,
-  })),
-);
+import { TimelineContainer } from "@web-speed-hackathon-2026/client/src/containers/TimelineContainer";
 const UserProfileContainer = lazy(() =>
   import("@web-speed-hackathon-2026/client/src/containers/UserProfileContainer").then((m) => ({
     default: m.UserProfileContainer,
@@ -84,7 +80,14 @@ export const AppContainer = () => {
   useTitle(isLoadingActiveUser ? "読込中 - CaX" : "CaX");
 
   if (isLoadingActiveUser) {
-    return null;
+    return (
+      <AppPage
+        activeUser={null}
+        authModalId={authModalId}
+        newPostModalId={newPostModalId}
+        onLogout={handleLogout}
+      />
+    );
   }
 
   return (

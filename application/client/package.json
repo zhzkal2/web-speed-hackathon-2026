@@ -11,13 +11,11 @@
   "dependencies": {
     "@web-speed-hackathon-2026/client": "workspace:*",
     "bayesian-bm25": "0.4.0",
-    "buffer": "6.0.3",
     "classnames": "2.5.1",
     "fast-average-color": "9.5.0",
     "katex": "0.16.25",
     "kuromoji": "0.1.2",
     "negaposi-analyzer-ja": "1.0.1",
-    "normalize.css": "8.0.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-redux": "9.2.0",
@@ -27,8 +25,7 @@
     "redux-form": "8.3.10",
     "rehype-katex": "7.0.1",
     "remark-gfm": "4.0.1",
-    "remark-math": "6.0.0",
-    "standardized-audio-context": "25.3.77"
+    "remark-math": "6.0.0"
   },
   "devDependencies": {
     "@babel/core": "7.28.4",

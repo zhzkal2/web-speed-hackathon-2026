@@ -102,6 +102,34 @@ const config = {
     minimize: true,
     splitChunks: {
       chunks: "all",
+      maxInitialRequests: 25,
+      maxAsyncRequests: 25,
+      cacheGroups: {
+        react: {
+          test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-redux|redux)[\\/]/,
+          name: "vendor-react",
+          chunks: "all",
+          priority: 20,
+        },
+        markdown: {
+          test: /[\\/]node_modules[\\/](react-markdown|rehype|remark|unified|micromark|mdast|hast|katex)/,
+          name: "vendor-markdown",
+          chunks: "async",
+          priority: 15,
+        },
+        syntax: {
+          test: /[\\/]node_modules[\\/](react-syntax-highlighter|highlight\.js|refractor|prismjs)/,
+          name: "vendor-syntax",
+          chunks: "async",
+          priority: 15,
+        },
+        nlp: {
+          test: /[\\/]node_modules[\\/](kuromoji|negaposi|bayesian-bm25)/,
+          name: "vendor-nlp",
+          chunks: "async",
+          priority: 15,
+        },
+      },
     },
     concatenateModules: true,
     usedExports: true,
