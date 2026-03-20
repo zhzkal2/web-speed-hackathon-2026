@@ -80,17 +80,6 @@ export const AppContainer = () => {
 
   useTitle("CaX");
 
-  if (isLoadingActiveUser) {
-    return (
-      <AppPage
-        activeUser={null}
-        authModalId={authModalId}
-        newPostModalId={newPostModalId}
-        onLogout={handleLogout}
-      />
-    );
-  }
-
   return (
     <>
       <AppPage
@@ -104,13 +93,17 @@ export const AppContainer = () => {
             <Route element={<TimelineContainer />} path="/" />
             <Route
               element={
-                <DirectMessageListContainer activeUser={activeUser} authModalId={authModalId} />
+                isLoadingActiveUser ? null : (
+                  <DirectMessageListContainer activeUser={activeUser} authModalId={authModalId} />
+                )
               }
               path="/dm"
             />
             <Route
               element={
-                <DirectMessageContainer activeUser={activeUser} authModalId={authModalId} />
+                isLoadingActiveUser ? null : (
+                  <DirectMessageContainer activeUser={activeUser} authModalId={authModalId} />
+                )
               }
               path="/dm/:conversationId"
             />
@@ -119,7 +112,11 @@ export const AppContainer = () => {
             <Route element={<PostContainer />} path="/posts/:postId" />
             <Route element={<TermContainer />} path="/terms" />
             <Route
-              element={<CrokContainer activeUser={activeUser} authModalId={authModalId} />}
+              element={
+                isLoadingActiveUser ? null : (
+                  <CrokContainer activeUser={activeUser} authModalId={authModalId} />
+                )
+              }
               path="/crok"
             />
             <Route element={<NotFoundContainer />} path="*" />
@@ -127,8 +124,12 @@ export const AppContainer = () => {
         </Suspense>
       </AppPage>
 
-      <AuthModalContainer id={authModalId} onUpdateActiveUser={setActiveUser} />
-      <NewPostModalContainer id={newPostModalId} />
+      {!isLoadingActiveUser && (
+        <>
+          <AuthModalContainer id={authModalId} onUpdateActiveUser={setActiveUser} />
+          <NewPostModalContainer id={newPostModalId} />
+        </>
+      )}
     </>
   );
 };

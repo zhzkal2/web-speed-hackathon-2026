@@ -79,17 +79,23 @@ async function getPrefetchData(urlPath: string, userId?: string): Promise<Record
 function extractLcpPreloads(data: Record<string, unknown>, urlPath: string): string {
   const links: string[] = [];
 
-  // Home: first post's first image or profile image
+  // Home: find first post with images, preload its first image
   const postsKey = "/api/v1/posts?limit=30&offset=0";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const posts = data[postsKey] as any[] | undefined;
   if (posts && posts.length > 0) {
-    const first = posts[0];
-    const firstImg = first?.images?.[0];
-    if (firstImg) {
+    // Preload first movie poster (video is often LCP element)
+    const postWithMovie = posts.find((p: any) => p.movie);
+    if (postWithMovie) {
+      links.push(`<link rel="preload" as="image" href="/movies/${postWithMovie.movie.id}.poster.avif" fetchpriority="high">`);
+    }
+    // Preload first image
+    const postWithImage = posts.find((p: any) => p.images && p.images.length > 0);
+    if (postWithImage) {
+      const firstImg = postWithImage.images[0];
       links.push(`<link rel="preload" as="image" href="/images/${firstImg.id}.avif" fetchpriority="high">`);
     }
-    const profileImg = first?.user?.profileImage;
+    const profileImg = posts[0]?.user?.profileImage;
     if (profileImg) {
       links.push(`<link rel="preload" as="image" href="/images/profiles/${profileImg.id}.avif">`);
     }
