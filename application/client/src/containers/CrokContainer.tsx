@@ -70,13 +70,13 @@ export const CrokContainer = ({ activeUser, authModalId }: Props) => {
     [isStreaming, start],
   );
 
+  useTitle(activeUser ? "Crok - CaX" : "Crok - CaX");
+
   if (!activeUser) {
     return (
       <CrokGate headline="Crokを利用するにはサインインしてください" authModalId={authModalId} />
     );
   }
-
-  useTitle("Crok - CaX");
 
   return (
     <CrokPage isStreaming={isStreaming} messages={displayMessages} onSendMessage={sendMessage} />
