@@ -80,6 +80,17 @@ export const AppContainer = () => {
 
   useTitle("CaX");
 
+  if (isLoadingActiveUser) {
+    return (
+      <AppPage
+        activeUser={null}
+        authModalId={authModalId}
+        newPostModalId={newPostModalId}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
   return (
     <>
       <AppPage
