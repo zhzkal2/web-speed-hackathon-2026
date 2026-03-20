@@ -5,13 +5,14 @@ import { Modal } from "@web-speed-hackathon-2026/client/src/components/modal/Mod
 
 interface Props {
   alt: string;
+  priority?: boolean;
   src: string;
 }
 
 /**
  * アスペクト比を維持したまま、要素のコンテンツボックス全体を埋めるように画像を拡大縮小します
  */
-export const CoveredImage = ({ alt, src }: Props) => {
+export const CoveredImage = ({ alt, src, priority }: Props) => {
   const dialogId = useId();
   const handleDialogClick = useCallback((ev: MouseEvent<HTMLDialogElement>) => {
     ev.stopPropagation();
@@ -23,7 +24,8 @@ export const CoveredImage = ({ alt, src }: Props) => {
         alt={alt}
         className="h-full w-full object-cover"
         decoding="async"
-        loading="lazy"
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : "auto"}
         src={src}
       />
 
