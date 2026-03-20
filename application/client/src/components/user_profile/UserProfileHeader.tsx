@@ -12,9 +12,10 @@ export const UserProfileHeader = ({ user }: Props) => {
   const [averageColor, setAverageColor] = useState<string | null>(null);
 
   const handleLoadImage = useCallback<ReactEventHandler<HTMLImageElement>>(async (ev) => {
+    const img = ev.currentTarget;
     const { FastAverageColor } = await import("fast-average-color");
     const fac = new FastAverageColor();
-    const { rgb } = fac.getColor(ev.currentTarget, { mode: "precision" });
+    const { rgb } = fac.getColor(img, { mode: "precision" });
     setAverageColor(rgb);
     fac.destroy();
   }, []);
@@ -22,7 +23,7 @@ export const UserProfileHeader = ({ user }: Props) => {
   return (
     <header className="relative">
       <div
-        className="h-32"
+        className="h-32 bg-cax-surface-subtle"
         style={averageColor ? { backgroundColor: averageColor } : undefined}
       ></div>
       <div className="border-cax-border bg-cax-surface-subtle absolute left-2/4 m-0 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border sm:h-32 sm:w-32">
