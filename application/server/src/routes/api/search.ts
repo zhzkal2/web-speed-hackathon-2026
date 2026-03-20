@@ -4,9 +4,27 @@ import { Op } from "sequelize";
 import { Post } from "@web-speed-hackathon-2026/server/src/models";
 import { parseSearchQuery } from "@web-speed-hackathon-2026/server/src/utils/parse_search_query.js";
 
+const cache = new Map<string, { data: unknown; expiry: number }>();
+const CACHE_TTL = 30 * 1000;
+
+function getCached<T>(key: string): T | null {
+  const entry = cache.get(key);
+  if (entry && entry.expiry > Date.now()) return entry.data as T;
+  cache.delete(key);
+  return null;
+}
+
+function setCache(key: string, data: unknown): void {
+  cache.set(key, { data, expiry: Date.now() + CACHE_TTL });
+}
+
 export const searchRouter = Router();
 
 searchRouter.get("/search", async (req, res) => {
+  const cacheKey = req.originalUrl;
+  const cached = getCached(cacheKey);
+  if (cached) return res.status(200).type("application/json").send(cached);
+
   const query = req.query["q"];
 
   if (typeof query !== "string" || query.trim() === "") {
@@ -88,5 +106,6 @@ searchRouter.get("/search", async (req, res) => {
 
   const result = mergedPosts.slice(offset || 0, (offset || 0) + (limit || mergedPosts.length));
 
+  setCache(cacheKey, result);
   return res.status(200).type("application/json").send(result);
 });

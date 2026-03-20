@@ -19,8 +19,12 @@ app.use("/api/v1/images", bodyParser.raw({ limit: "10mb" }));
 app.use("/api/v1/movies", bodyParser.raw({ limit: "10mb" }));
 app.use("/api/v1/sounds", bodyParser.raw({ limit: "10mb" }));
 
-app.use("/api/v1", (_req, res, next) => {
-  res.header("Cache-Control", "no-store");
+app.use("/api/v1", (req, res, next) => {
+  if (req.method === "GET") {
+    res.header("Cache-Control", "private, max-age=5");
+  } else {
+    res.header("Cache-Control", "no-store");
+  }
   return next();
 });
 

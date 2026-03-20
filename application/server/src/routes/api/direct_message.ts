@@ -16,22 +16,52 @@ directMessageRouter.get("/dm", async (req, res) => {
     throw new httpErrors.Unauthorized();
   }
 
-  const conversations = await DirectMessageConversation.scope("withMessages").findAll({
+  const conversations = await DirectMessageConversation.findAll({
     where: {
-      [Op.and]: [
-        { [Op.or]: [{ initiatorId: req.session.userId }, { memberId: req.session.userId }] },
-        where(col("messages.id"), { [Op.not]: null }),
+      [Op.or]: [
+        { initiatorId: req.session.userId },
+        { memberId: req.session.userId },
       ],
     },
-    order: [[col("messages.createdAt"), "DESC"]],
+    include: [
+      { association: "initiator", include: [{ association: "profileImage" }] },
+      { association: "member", include: [{ association: "profileImage" }] },
+    ],
   });
 
-  const sorted = conversations.map((c) => ({
-    ...c.toJSON(),
-    messages: c.messages?.reverse(),
-  }));
+  const result = await Promise.all(
+    conversations.map(async (conv) => {
+      const lastMessage = await DirectMessage.findOne({
+        where: { conversationId: conv.id },
+        order: [["createdAt", "DESC"]],
+        include: [{ association: "sender", include: [{ association: "profileImage" }] }],
+      });
 
-  return res.status(200).type("application/json").send(sorted);
+      if (!lastMessage) return null;
+
+      const hasUnread = await DirectMessage.count({
+        where: {
+          conversationId: conv.id,
+          senderId: { [Op.ne]: req.session.userId },
+          isRead: false,
+        },
+      }) > 0;
+
+      const json = conv.toJSON();
+      json.messages = [lastMessage.toJSON()];
+      json.hasUnread = hasUnread;
+      return json;
+    }),
+  );
+
+  const filtered = result.filter(Boolean);
+  filtered.sort((a: any, b: any) => {
+    const aTime = new Date(a.messages[0].createdAt).getTime();
+    const bTime = new Date(b.messages[0].createdAt).getTime();
+    return bTime - aTime;
+  });
+
+  return res.status(200).type("application/json").send(filtered);
 });
 
 directMessageRouter.post("/dm", async (req, res) => {

@@ -73,7 +73,9 @@ export const DirectMessagePage = ({
 
   useEffect(() => {
     const observer = new ResizeObserver(() => {
-      window.scrollTo(0, document.body.scrollHeight);
+      requestAnimationFrame(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
     });
     observer.observe(document.body);
     return () => observer.disconnect();

@@ -3,6 +3,20 @@ import httpErrors from "http-errors";
 
 import { Post, User } from "@web-speed-hackathon-2026/server/src/models";
 
+const cache = new Map<string, { data: unknown; expiry: number }>();
+const CACHE_TTL = 30 * 1000;
+
+function getCached<T>(key: string): T | null {
+  const entry = cache.get(key);
+  if (entry && entry.expiry > Date.now()) return entry.data as T;
+  cache.delete(key);
+  return null;
+}
+
+function setCache(key: string, data: unknown): void {
+  cache.set(key, { data, expiry: Date.now() + CACHE_TTL });
+}
+
 export const userRouter = Router();
 
 userRouter.get("/me", async (req, res) => {
@@ -35,6 +49,10 @@ userRouter.put("/me", async (req, res) => {
 });
 
 userRouter.get("/users/:username", async (req, res) => {
+  const cacheKey = req.originalUrl;
+  const cached = getCached(cacheKey);
+  if (cached) return res.status(200).type("application/json").send(cached);
+
   const user = await User.findOne({
     where: {
       username: req.params.username,
@@ -45,10 +63,15 @@ userRouter.get("/users/:username", async (req, res) => {
     throw new httpErrors.NotFound();
   }
 
+  setCache(cacheKey, user);
   return res.status(200).type("application/json").send(user);
 });
 
 userRouter.get("/users/:username/posts", async (req, res) => {
+  const cacheKey = req.originalUrl;
+  const cached = getCached(cacheKey);
+  if (cached) return res.status(200).type("application/json").send(cached);
+
   const user = await User.findOne({
     where: {
       username: req.params.username,
@@ -67,5 +90,6 @@ userRouter.get("/users/:username/posts", async (req, res) => {
     },
   });
 
+  setCache(cacheKey, posts);
   return res.status(200).type("application/json").send(posts);
 });
