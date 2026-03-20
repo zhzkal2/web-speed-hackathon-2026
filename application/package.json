@@ -21,6 +21,6 @@
   },
   "packageManager": "pnpm@10.32.1",
   "pnpm": {
-    "onlyBuiltDependencies": ["sharp", "negaposi-analyzer-ja"]
+    "onlyBuiltDependencies": ["sharp", "negaposi-analyzer-ja", "sqlite3", "bcrypt", "esbuild"]
   }
 }
