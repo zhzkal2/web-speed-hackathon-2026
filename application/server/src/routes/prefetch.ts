@@ -8,75 +8,98 @@ import { CLIENT_DIST_PATH } from "@web-speed-hackathon-2026/server/src/paths";
 
 export const prefetchRouter = Router();
 
-let htmlTemplate: string | null = null;
+let headPart: string | null = null;
+let bodyPart: string | null = null;
 
-function getHtml(): string {
-  if (!htmlTemplate) {
-    htmlTemplate = readFileSync(path.join(CLIENT_DIST_PATH, "index.html"), "utf-8");
-  }
-  return htmlTemplate;
+function loadHtmlParts(): void {
+  if (headPart !== null) return;
+  const html = readFileSync(path.join(CLIENT_DIST_PATH, "index.html"), "utf-8");
+  const splitIdx = html.indexOf("</head>");
+  headPart = html.slice(0, splitIdx);
+  bodyPart = html.slice(splitIdx);
 }
 
-// Route-based data prefetching
-async function getPrefetchData(urlPath: string): Promise<Record<string, unknown>> {
+// Route-based data prefetching — runs queries in parallel where possible
+async function getPrefetchData(urlPath: string, userId?: string): Promise<Record<string, unknown>> {
   const data: Record<string, unknown> = {};
+  const promises: Array<Promise<void>> = [];
+
+  // /api/v1/me — always prefetch (null for not-logged-in to avoid 401 roundtrip)
+  promises.push(
+    (userId
+      ? User.findByPk(userId).then((me) => { data["/api/v1/me"] = me ?? null; })
+      : Promise.resolve().then(() => { data["/api/v1/me"] = null; })
+    ),
+  );
 
   // Home timeline
   if (urlPath === "/" || urlPath === "") {
-    data["/api/v1/posts?limit=30&offset=0"] = await Post.findAll({ limit: 30, offset: 0 });
+    promises.push(
+      Post.findAll({ limit: 30, offset: 0 }).then((posts) => {
+        data["/api/v1/posts?limit=30&offset=0"] = posts;
+      }),
+    );
   }
 
   // Post detail
   const postMatch = urlPath.match(/^\/posts\/([^/]+)$/);
   if (postMatch) {
-    const post = await Post.findByPk(postMatch[1]);
-    if (post) {
-      data[`/api/v1/posts/${postMatch[1]}`] = post;
-      data[`/api/v1/posts/${postMatch[1]}/comments?limit=30&offset=0`] = [];
-    }
+    promises.push(
+      Post.findByPk(postMatch[1]).then((post) => {
+        if (post) {
+          data[`/api/v1/posts/${postMatch[1]}`] = post;
+          data[`/api/v1/posts/${postMatch[1]}/comments?limit=30&offset=0`] = [];
+        }
+      }),
+    );
   }
 
   // User profile
   const userMatch = urlPath.match(/^\/users\/([^/]+)$/);
   if (userMatch) {
-    const user = await User.findOne({ where: { username: userMatch[1] } });
-    if (user) {
-      data[`/api/v1/users/${userMatch[1]}`] = user;
-      data[`/api/v1/users/${userMatch[1]}/posts?limit=30&offset=0`] = await Post.findAll({
-        where: { userId: user.id },
-        limit: 30,
-        offset: 0,
-      });
-    }
+    promises.push(
+      User.findOne({ where: { username: userMatch[1] } }).then(async (user) => {
+        if (user) {
+          data[`/api/v1/users/${userMatch[1]}`] = user;
+          data[`/api/v1/users/${userMatch[1]}/posts?limit=30&offset=0`] = await Post.findAll({
+            where: { userId: user.id },
+            limit: 30,
+            offset: 0,
+          });
+        }
+      }),
+    );
   }
 
+  await Promise.all(promises);
   return data;
 }
 
-// Intercept HTML requests and inject prefetch data
+// Intercept HTML requests — stream head first, then inject prefetch data
 prefetchRouter.use(async (req, res, next) => {
-  // Only handle navigation requests (not API, not static assets)
   const accept = req.headers.accept || "";
   if (!accept.includes("text/html")) return next();
   if (req.path.startsWith("/api/")) return next();
   if (/\.\w+$/.test(req.path)) return next();
 
   try {
-    const prefetchData = await getPrefetchData(req.path);
-    const html = getHtml();
-
-    if (Object.keys(prefetchData).length === 0) {
-      res.setHeader("Content-Type", "text/html");
-      res.setHeader("Cache-Control", "no-cache");
-      return res.send(html);
-    }
-
-    const script = `<script>window.__PREFETCH__=${JSON.stringify(prefetchData)}</script>`;
-    const injected = html.replace("</head>", `${script}</head>`);
+    loadHtmlParts();
 
     res.setHeader("Content-Type", "text/html");
     res.setHeader("Cache-Control", "no-cache");
-    return res.send(injected);
+
+    // Stream head immediately so browser starts loading CSS/JS
+    res.write(headPart);
+
+    // Run DB queries in parallel while browser downloads CSS/JS
+    const prefetchData = await getPrefetchData(req.path, req.session.userId);
+
+    if (Object.keys(prefetchData).length > 0) {
+      res.write(`<script>window.__PREFETCH__=${JSON.stringify(prefetchData)}</script>`);
+    }
+
+    res.write(bodyPart);
+    return res.end();
   } catch {
     return next();
   }
