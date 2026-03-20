@@ -1,16 +1,10 @@
 import { Router } from "express";
 import httpErrors from "http-errors";
-import OpenAI from "openai";
+
 
 export const translateRouter = Router();
 
-const client = new OpenAI({ apiKey: process.env["OPENAI_API_KEY"] });
-
 translateRouter.post("/translate", async (req, res) => {
-  if (req.session.userId === undefined) {
-    throw new httpErrors.Unauthorized();
-  }
-
   const { text, sourceLang = "ja", targetLang = "en" } = req.body as {
     text?: string;
     sourceLang?: string;
@@ -21,19 +15,15 @@ translateRouter.post("/translate", async (req, res) => {
     throw new httpErrors.BadRequest("text is required");
   }
 
-  const completion = await client.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content: `Translate the following text from ${sourceLang} to ${targetLang}. Return only the translated text, no explanations.`,
-      },
-      { role: "user", content: text },
-    ],
-    temperature: 0,
-  });
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`;
+  const response = await fetch(url);
 
-  const translated = completion.choices[0]?.message.content ?? "";
+  if (!response.ok) {
+    throw new httpErrors.InternalServerError("Translation service unavailable");
+  }
+
+  const data = (await response.json()) as { responseData: { translatedText: string } };
+  const translated = data.responseData.translatedText ?? "";
 
   return res.status(200).type("application/json").send({ result: translated });
 });
