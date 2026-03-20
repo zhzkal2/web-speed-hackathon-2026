@@ -88,15 +88,7 @@ const config = {
   ],
   resolve: {
     extensions: [".tsx", ".ts", ".mjs", ".cjs", ".jsx", ".js", ".json"],
-    alias: {
-      "bayesian-bm25$": path.resolve(__dirname, "node_modules", "bayesian-bm25/dist/index.js"),
-      ["kuromoji$"]: path.resolve(__dirname, "node_modules", "kuromoji/build/kuromoji.js"),
-    },
-    fallback: {
-      fs: false,
-      path: false,
-      url: false,
-    },
+    fallback: {},
   },
   optimization: {
     minimize: true,
@@ -120,12 +112,6 @@ const config = {
         syntax: {
           test: /[\\/]node_modules[\\/](react-syntax-highlighter|highlight\.js|refractor|prismjs)/,
           name: "vendor-syntax",
-          chunks: "async",
-          priority: 15,
-        },
-        nlp: {
-          test: /[\\/]node_modules[\\/](kuromoji|negaposi|bayesian-bm25)/,
-          name: "vendor-nlp",
           chunks: "async",
           priority: 15,
         },

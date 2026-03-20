@@ -2,19 +2,76 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { BM25 } from "bayesian-bm25";
 import { Router } from "express";
 import httpErrors from "http-errors";
+import analyze from "negaposi-analyzer-ja";
 
 import { QaSuggestion } from "@web-speed-hackathon-2026/server/src/models";
+import { getTokenizer } from "@web-speed-hackathon-2026/server/src/utils/tokenizer";
 
 export const crokRouter = Router();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const response = fs.readFileSync(path.join(__dirname, "crok-response.md"), "utf-8");
 
-crokRouter.get("/crok/suggestions", async (_req, res) => {
+const STOP_POS = new Set(["助詞", "助動詞", "記号"]);
+
+crokRouter.get("/crok/suggestions", async (req, res) => {
   const suggestions = await QaSuggestion.findAll({ logging: false });
-  res.json({ suggestions: suggestions.map((s) => s.question) });
+  const candidates = suggestions.map((s) => s.question);
+
+  const q = typeof req.query["q"] === "string" ? req.query["q"].trim() : "";
+  if (!q) {
+    return res.json({ suggestions: candidates });
+  }
+
+  const tokenizer = await getTokenizer();
+  const queryTokens = tokenizer
+    .tokenize(q)
+    .filter((t) => t.surface_form !== "" && t.pos !== "" && !STOP_POS.has(t.pos))
+    .map((t) => t.surface_form.toLowerCase());
+
+  if (queryTokens.length === 0) {
+    return res.json({ suggestions: [] });
+  }
+
+  const bm25 = new BM25({ k1: 1.2, b: 0.75 });
+  const tokenizedCandidates = candidates.map((c) =>
+    tokenizer
+      .tokenize(c)
+      .filter((t) => t.surface_form !== "" && t.pos !== "" && !STOP_POS.has(t.pos))
+      .map((t) => t.surface_form.toLowerCase()),
+  );
+  bm25.index(tokenizedCandidates);
+
+  const scores = bm25.getScores(queryTokens);
+  const results = candidates
+    .map((text, i) => ({ text, score: scores[i]! }))
+    .filter((s) => s.score > 0)
+    .sort((a, b) => a.score - b.score)
+    .slice(-10)
+    .map((s) => s.text);
+
+  return res.json({ suggestions: results, queryTokens });
+});
+
+crokRouter.get("/crok/sentiment", async (req, res) => {
+  const text = typeof req.query["text"] === "string" ? req.query["text"].trim() : "";
+  if (!text) {
+    return res.json({ score: 0, label: "neutral" });
+  }
+
+  const tokenizer = await getTokenizer();
+  const tokens = tokenizer.tokenize(text);
+  const score = analyze(tokens);
+
+  let label: "positive" | "negative" | "neutral";
+  if (score > 0.1) label = "positive";
+  else if (score < -0.1) label = "negative";
+  else label = "neutral";
+
+  return res.json({ score, label });
 });
 
 crokRouter.get("/crok", async (req, res) => {
