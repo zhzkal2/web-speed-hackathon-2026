@@ -2,6 +2,7 @@
 const path = require("path");
 
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const HTMLInlineCSSWebpackPlugin = require("html-inline-css-webpack-plugin").default;
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const webpack = require("webpack");
@@ -85,6 +86,7 @@ const config = {
       inject: true,
       template: path.resolve(SRC_PATH, "./index.html"),
     }),
+    new HTMLInlineCSSWebpackPlugin({ leaveCSSFile: true }),
   ],
   resolve: {
     extensions: [".tsx", ".ts", ".mjs", ".cjs", ".jsx", ".js", ".json"],
