@@ -146,7 +146,7 @@ prefetchRouter.use(async (req, res, next) => {
       const stripScripts = (html: string) => html
         .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
         .replace(/<link\b[^>]*rel=["']modulepreload["'][^>]*>/gi, "");
-      const cleanHead = stripScripts(headPart!);
+      const cleanHead = stripScripts(headPart!).replace(/<title>[^<]*<\/title>/, "<title>利用規約 - CaX</title>");
       const cleanBody = stripScripts(bodyPart!)
         .replace(/<div id="app-loader"[^>]*>[^<]*<\/div>/, ssrContent);
       const fullHtml = cleanHead + cleanBody;

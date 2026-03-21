@@ -1,8 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useId, useState } from "react";
 import { Route, Routes, useLocation, useNavigate } from "react-router";
 
-import { useTitle } from "@web-speed-hackathon-2026/client/src/hooks/use_title";
-
 import { AppPage } from "@web-speed-hackathon-2026/client/src/components/application/AppPage";
 import { fetchJSON, sendJSON } from "@web-speed-hackathon-2026/client/src/utils/fetchers";
 import { TimelineContainer } from "@web-speed-hackathon-2026/client/src/containers/TimelineContainer";
@@ -85,8 +83,6 @@ export const AppContainer = () => {
 
   const authModalId = useId();
   const newPostModalId = useId();
-
-  useTitle("CaX");
 
   return (
     <>
