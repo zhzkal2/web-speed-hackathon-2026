@@ -83,6 +83,11 @@ crokRouter.get("/crok/sentiment", async (req, res) => {
   return res.json({ score, label });
 });
 
+const STREAM_CHUNK_SIZE = 160;
+const STREAM_CHUNK_INTERVAL_MS = 8;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 crokRouter.get("/crok", async (req, res) => {
   if (req.session.userId === undefined) {
     throw new httpErrors.Unauthorized();
@@ -95,11 +100,16 @@ crokRouter.get("/crok", async (req, res) => {
 
   let messageId = 0;
 
-  for (const char of response) {
+  for (let i = 0; i < response.length; i += STREAM_CHUNK_SIZE) {
     if (res.closed) break;
 
-    const data = JSON.stringify({ text: char, done: false });
+    const chunk = response.slice(i, i + STREAM_CHUNK_SIZE);
+    const data = JSON.stringify({ text: chunk, done: false });
     res.write(`event: message\nid: ${messageId++}\ndata: ${data}\n\n`);
+
+    if (i + STREAM_CHUNK_SIZE < response.length) {
+      await sleep(STREAM_CHUNK_INTERVAL_MS);
+    }
   }
 
   if (!res.closed) {

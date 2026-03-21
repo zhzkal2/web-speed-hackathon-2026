@@ -82,7 +82,6 @@ export const DirectMessageContainer = ({ activeUser, authModalId }: Props) => {
 
       // 서버 전송은 백그라운드 (await 하지 않음)
       sendJSON(`/api/v1/dm/${conversationId}/messages`, { body: params.body })
-        .then(() => loadConversation())
         .catch(() => {
           setConversation((prev) => {
             if (!prev) return prev;
@@ -93,7 +92,7 @@ export const DirectMessageContainer = ({ activeUser, authModalId }: Props) => {
           });
         });
     },
-    [conversationId, activeUser, loadConversation],
+    [conversationId, activeUser],
   );
 
   const handleTyping = useCallback(async () => {
@@ -102,15 +101,28 @@ export const DirectMessageContainer = ({ activeUser, authModalId }: Props) => {
 
   useWs(`/api/v1/dm/${conversationId}`, (event: DmUpdateEvent | DmTypingEvent) => {
     if (event.type === "dm:conversation:message") {
-      void loadConversation().then(() => {
-        if (event.payload.sender.id !== activeUser?.id) {
-          setIsPeerTyping(false);
-          if (peerTypingTimeoutRef.current !== null) {
-            clearTimeout(peerTypingTimeoutRef.current);
-          }
-          peerTypingTimeoutRef.current = null;
+      const newMessage = event.payload;
+      setConversation((prev) => {
+        if (!prev) return prev;
+        if (prev.messages.some((m) => m.id === newMessage.id)) return prev;
+        const optimisticIdx = prev.messages.findIndex(
+          (m) => m.id.startsWith("optimistic-") && m.sender.id === newMessage.sender.id && m.body === newMessage.body
+        );
+        if (optimisticIdx !== -1) {
+          const updated = [...prev.messages];
+          updated[optimisticIdx] = newMessage;
+          return { ...prev, messages: updated };
         }
+        return { ...prev, messages: [...prev.messages, newMessage] };
       });
+
+      if (newMessage.sender.id !== activeUser?.id) {
+        setIsPeerTyping(false);
+        if (peerTypingTimeoutRef.current !== null) {
+          clearTimeout(peerTypingTimeoutRef.current);
+        }
+        peerTypingTimeoutRef.current = null;
+      }
       void sendRead();
     } else if (event.type === "dm:conversation:typing") {
       setIsPeerTyping(true);
