@@ -1,3 +1,5 @@
+import { useCallback, useState } from "react";
+
 import { formatLL, toISOString } from "@web-speed-hackathon-2026/client/src/utils/format_date";
 
 import { FontAwesomeIcon } from "@web-speed-hackathon-2026/client/src/components/foundation/FontAwesomeIcon";
@@ -8,11 +10,25 @@ interface Props {
 }
 
 export const UserProfileHeader = ({ user }: Props) => {
+  const [averageColor, setAverageColor] = useState<string | null>(null);
+
+  const handleLoadImage = useCallback(
+    async (event: React.SyntheticEvent<HTMLImageElement>) => {
+      const { FastAverageColor } = await import("fast-average-color");
+      const fac = new FastAverageColor();
+      const result = fac.getColor(event.currentTarget);
+      setAverageColor(result.rgb);
+    },
+    [],
+  );
+
   return (
     <header className="relative">
-      <div className="h-32 bg-cax-surface-subtle"></div>
+      <div className={`h-32 ${averageColor ? `bg-[${averageColor}]` : "bg-cax-surface-subtle"}`} style={averageColor ? { backgroundColor: averageColor } : undefined}></div>
       <div className="border-cax-border bg-cax-surface-subtle absolute left-2/4 m-0 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border sm:h-32 sm:w-32">
         <img
+          onLoad={handleLoadImage}
+          crossOrigin="anonymous"
           alt=""
           src={getProfileImagePath(user.profileImage.id)}
           width={128}
