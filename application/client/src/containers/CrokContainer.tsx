@@ -53,6 +53,9 @@ export const CrokContainer = ({ activeUser, authModalId }: Props) => {
     (userInput: string) => {
       if (!userInput.trim() || isStreaming) return;
 
+      // 스트리밍 완료 시 필요한 리치 마크다운 청크 프리로드
+      void import("@web-speed-hackathon-2026/client/src/components/crok/RichMarkdown");
+
       const userMessage: Models.ChatMessage = {
         role: "user",
         content: userInput,
