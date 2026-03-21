@@ -1,6 +1,6 @@
 import { Router } from "express";
 import httpErrors from "http-errors";
-import { Op } from "sequelize";
+import { col, where, Op } from "sequelize";
 
 import { eventhub } from "@web-speed-hackathon-2026/server/src/eventhub";
 import {
@@ -18,63 +18,22 @@ directMessageRouter.get("/dm", async (req, res) => {
     throw new httpErrors.Unauthorized();
   }
 
-  // 1) 대화 목록만 (default scope: initiator/member + profileImage, 메시지 없음)
   const conversations = await DirectMessageConversation.findAll({
     where: {
-      [Op.or]: [{ initiatorId: req.session.userId }, { memberId: req.session.userId }],
+      [Op.and]: [
+        { [Op.or]: [{ initiatorId: req.session.userId }, { memberId: req.session.userId }] },
+        where(col("messages.id"), { [Op.not]: null }),
+      ],
     },
+    order: [[col("messages.createdAt"), "DESC"]],
   });
 
-  if (conversations.length === 0) {
-    return res.status(200).type("application/json").send([]);
-  }
+  const sorted = conversations.map((c) => ({
+    ...c.toJSON(),
+    messages: c.messages?.reverse(),
+  }));
 
-  // 2) 각 대화별로 마지막 메시지 1개 + 미읽은 메시지 1개만 쿼리
-  //    ※ DirectMessage의 default scope에 order ASC가 있으므로 반드시 unscoped() 사용
-  const result = await Promise.all(
-    conversations.map(async (conv) => {
-      const plain = conv.toJSON() as any;
-
-      // 마지막 메시지 1개 (unscoped + sender 수동 include)
-      const lastMessage = await DirectMessage.unscoped().findOne({
-        where: { conversationId: conv.id },
-        include: senderInclude,
-        order: [["createdAt", "DESC"]],
-      });
-
-      if (!lastMessage) return null; // 메시지 없는 대화 제외
-
-      // peer로부터의 미읽은 메시지 1개
-      const peerId = conv.initiatorId !== req.session.userId ? conv.initiatorId : conv.memberId;
-      const unreadMsg = await DirectMessage.unscoped().findOne({
-        where: {
-          conversationId: conv.id,
-          senderId: peerId,
-          isRead: false,
-        },
-        include: senderInclude,
-        order: [["createdAt", "DESC"]],
-      });
-
-      const messages = [lastMessage.toJSON()];
-      if (unreadMsg && unreadMsg.id !== lastMessage.id) {
-        messages.push(unreadMsg.toJSON());
-      }
-      plain.messages = messages;
-      return plain;
-    }),
-  );
-
-  // null 제거 + 마지막 메시지 시간순 내림차순 정렬
-  const filtered = result
-    .filter((r): r is NonNullable<typeof r> => r !== null)
-    .sort((a: any, b: any) => {
-      const aTime = new Date(a.messages[0].createdAt).getTime();
-      const bTime = new Date(b.messages[0].createdAt).getTime();
-      return bTime - aTime;
-    });
-
-  return res.status(200).type("application/json").send(filtered);
+  return res.status(200).type("application/json").send(sorted);
 });
 
 directMessageRouter.post("/dm", async (req, res) => {
@@ -143,7 +102,6 @@ directMessageRouter.get("/dm/:conversationId", async (req, res) => {
     throw new httpErrors.Unauthorized();
   }
 
-  // default scope로 대화 정보만 (initiator/member + profileImage)
   const conversation = await DirectMessageConversation.findOne({
     where: {
       id: req.params.conversationId,
@@ -154,21 +112,7 @@ directMessageRouter.get("/dm/:conversationId", async (req, res) => {
     throw new httpErrors.NotFound();
   }
 
-  // 최신 50개 메시지만 별도 쿼리 (unscoped로 default scope order 충돌 방지)
-  const messages = await DirectMessage.unscoped().findAll({
-    where: { conversationId: conversation.id },
-    include: senderInclude,
-    order: [["createdAt", "DESC"]],
-    limit: 50,
-  });
-
-  // createdAt ASC로 정렬해서 반환 (채팅 UI는 오래된 것이 위)
-  messages.reverse();
-
-  const plain = conversation.toJSON() as any;
-  plain.messages = messages.map((m) => m.toJSON());
-
-  return res.status(200).type("application/json").send(plain);
+  return res.status(200).type("application/json").send(conversation);
 });
 
 directMessageRouter.ws("/dm/:conversationId", async (req, _res) => {
