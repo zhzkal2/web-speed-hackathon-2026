@@ -193,6 +193,12 @@ importers:
       negaposi-analyzer-ja:
         specifier: 1.0.1
         version: 1.0.1
+      react:
+        specifier: 19.2.0
+        version: 19.2.0
+      react-dom:
+        specifier: 19.2.0
+        version: 19.2.0(react@19.2.0)
       sequelize:
         specifier: 6.37.7
         version: 6.37.7(sqlite3@5.1.7)

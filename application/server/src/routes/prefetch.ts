@@ -5,6 +5,7 @@ import { Router } from "express";
 
 import { Post, User } from "@web-speed-hackathon-2026/server/src/models";
 import { CLIENT_DIST_PATH } from "@web-speed-hackathon-2026/server/src/paths";
+import { getTermsSSRHtml } from "@web-speed-hackathon-2026/server/src/ssr/terms";
 
 export const prefetchRouter = Router();
 
@@ -137,6 +138,26 @@ prefetchRouter.use(async (req, res, next) => {
 
     // キャッシュミス: head を先にストリーミングしてブラウザにCSS/JSダウンロードを開始させる
     res.write(headPart);
+
+    // /terms: SSR HTML を app div に挿入して JS ロード前にコンテンツ表示
+    if (req.path === "/terms") {
+      const ssrContent = getTermsSSRHtml();
+      const prefetchData = await getPrefetchData(req.path, req.session.userId);
+      // app-loader を SSR コンテンツで置換
+      const ssrBodyPart = bodyPart!.replace(
+        /<div id="app-loader"[^>]*>[^<]*<\/div>/,
+        ssrContent,
+      );
+      const tailHtml =
+        (Object.keys(prefetchData).length > 0
+          ? `<script>window.__PREFETCH__=${JSON.stringify(prefetchData)}</script>`
+          : "") +
+        ssrBodyPart;
+      res.write(tailHtml);
+      res.end();
+      htmlCache.set(req.path, headPart + tailHtml);
+      return;
+    }
 
     const prefetchData = await getPrefetchData(req.path, req.session.userId);
     const lcpPreloads = extractLcpPreloads(prefetchData, req.path);
