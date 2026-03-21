@@ -22,7 +22,7 @@ RUN pnpm install --frozen-lockfile
 
 COPY ./application .
 
-RUN echo "cache-bust-v3" && NODE_OPTIONS="--max-old-space-size=4096" pnpm build
+RUN echo "cache-bust-v4" && NODE_OPTIONS="--max-old-space-size=4096" pnpm build
 
 RUN CI=true pnpm install --frozen-lockfile --prod --filter @web-speed-hackathon-2026/server
 

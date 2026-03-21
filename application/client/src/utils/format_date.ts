@@ -20,24 +20,24 @@ export function fromNow(dateStr: string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
   const diffMs = now - then;
-  const seconds = Math.floor(diffMs / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  const months = Math.floor(days / 30);
-  const years = Math.floor(days / 365);
+  const seconds = Math.round(diffMs / 1000);
 
+  // moment.js の区間基準に準拠
   if (seconds < 45) return "数秒前";
-  if (minutes < 1) return "数秒前";
-  if (minutes === 1) return "1分前";
+  if (seconds < 90) return "1分前";
+  const minutes = Math.round(seconds / 60);
   if (minutes < 45) return `${minutes}分前`;
-  if (hours === 1) return "1時間前";
+  if (minutes < 90) return "1時間前";
+  const hours = Math.round(minutes / 60);
   if (hours < 22) return `${hours}時間前`;
-  if (days === 1) return "1日前";
+  if (hours < 36) return "1日前";
+  const days = Math.round(hours / 24);
   if (days < 26) return `${days}日前`;
-  if (months === 1) return "1ヶ月前";
-  if (months < 12) return `${months}ヶ月前`;
-  if (years === 1) return "1年前";
+  if (days < 46) return "1ヶ月前";
+  const months = Math.round(days / 30.5);
+  if (months < 11) return `${months}ヶ月前`;
+  const years = Math.round(days / 365);
+  if (years <= 1) return "1年前";
   return `${years}年前`;
 }
 
