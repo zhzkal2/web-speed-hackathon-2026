@@ -143,7 +143,8 @@ directMessageRouter.get("/dm/:conversationId", async (req, res) => {
     throw new httpErrors.Unauthorized();
   }
 
-  const conversation = await DirectMessageConversation.scope("withMessages").findOne({
+  // default scope로 대화 정보만 (initiator/member + profileImage)
+  const conversation = await DirectMessageConversation.findOne({
     where: {
       id: req.params.conversationId,
       [Op.or]: [{ initiatorId: req.session.userId }, { memberId: req.session.userId }],
@@ -153,7 +154,21 @@ directMessageRouter.get("/dm/:conversationId", async (req, res) => {
     throw new httpErrors.NotFound();
   }
 
-  return res.status(200).type("application/json").send(conversation);
+  // 최신 50개 메시지만 별도 쿼리 (unscoped로 default scope order 충돌 방지)
+  const messages = await DirectMessage.unscoped().findAll({
+    where: { conversationId: conversation.id },
+    include: senderInclude,
+    order: [["createdAt", "DESC"]],
+    limit: 50,
+  });
+
+  // createdAt ASC로 정렬해서 반환 (채팅 UI는 오래된 것이 위)
+  messages.reverse();
+
+  const plain = conversation.toJSON() as any;
+  plain.messages = messages.map((m) => m.toJSON());
+
+  return res.status(200).type("application/json").send(plain);
 });
 
 directMessageRouter.ws("/dm/:conversationId", async (req, _res) => {
