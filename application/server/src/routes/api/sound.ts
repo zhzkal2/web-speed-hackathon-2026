@@ -44,6 +44,8 @@ soundRouter.post("/sounds", async (req, res) => {
       "-i", tmpInput,
       ...metadataArgs,
       "-vn",
+      "-b:a", "96k",
+      "-ac", "1",
       "-y",
       outputPath,
     ]);

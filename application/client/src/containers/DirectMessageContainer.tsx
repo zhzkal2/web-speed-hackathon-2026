@@ -65,16 +65,45 @@ export const DirectMessageContainer = ({ activeUser, authModalId }: Props) => {
   const handleSubmit = useCallback(
     async (params: DirectMessageFormData) => {
       setIsSubmitting(true);
+
+      // 옵티미스틱: 즉시 로컬 state에 메시지 추가
+      const optimisticId = `optimistic-${Date.now()}`;
+      const optimisticMessage: Models.DirectMessage = {
+        id: optimisticId,
+        body: params.body,
+        sender: activeUser!,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      setConversation((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: [...prev.messages, optimisticMessage],
+        };
+      });
+
       try {
         await sendJSON(`/api/v1/dm/${conversationId}/messages`, {
           body: params.body,
         });
         loadConversation();
+      } catch {
+        // 실패 시 옵티미스틱 메시지 제거
+        setConversation((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            messages: prev.messages.filter((m) => m.id !== optimisticId),
+          };
+        });
       } finally {
         setIsSubmitting(false);
       }
     },
-    [conversationId, loadConversation],
+    [conversationId, activeUser, loadConversation],
   );
 
   const handleTyping = useCallback(async () => {

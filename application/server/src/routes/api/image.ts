@@ -58,7 +58,7 @@ imageRouter.post("/images", async (req, res) => {
   let outputBuffer: Buffer;
   let exifBuffer: Buffer | undefined;
   try {
-    const instance = sharp(req.body).avif({ quality: 50 }).withMetadata();
+    const instance = sharp(req.body).avif({ quality: 50, effort: 0 }).withMetadata();
     const [buf, metadata] = await Promise.all([
       instance.toBuffer(),
       sharp(req.body).metadata(),
