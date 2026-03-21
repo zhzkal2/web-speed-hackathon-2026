@@ -139,20 +139,14 @@ prefetchRouter.use(async (req, res, next) => {
     // キャッシュミス: head を先にストリーミングしてブラウザにCSS/JSダウンロードを開始させる
     res.write(headPart);
 
-    // /terms: SSR HTML を app div に挿入して JS ロード前にコンテンツ表示
+    // /terms: Full SSR with no JS — eliminates TBT entirely
     if (req.path === "/terms") {
       const ssrContent = getTermsSSRHtml();
-      const prefetchData = await getPrefetchData(req.path, req.session.userId);
-      // app-loader を SSR コンテンツで置換
-      const ssrBodyPart = bodyPart!.replace(
-        /<div id="app-loader"[^>]*>[^<]*<\/div>/,
-        ssrContent,
-      );
-      const tailHtml =
-        (Object.keys(prefetchData).length > 0
-          ? `<script>window.__PREFETCH__=${JSON.stringify(prefetchData)}</script>`
-          : "") +
-        ssrBodyPart;
+      // Strip all <script> tags from body to prevent JS execution (TBT=0)
+      const noScriptBody = bodyPart!
+        .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+        .replace(/<div id="app-loader"[^>]*>[^<]*<\/div>/, ssrContent);
+      const tailHtml = noScriptBody;
       res.write(tailHtml);
       res.end();
       htmlCache.set(req.path, headPart + tailHtml);
