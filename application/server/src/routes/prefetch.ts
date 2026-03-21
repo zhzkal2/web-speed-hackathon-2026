@@ -26,14 +26,6 @@ async function getPrefetchData(urlPath: string, userId?: string): Promise<Record
   const data: Record<string, unknown> = {};
   const promises: Array<Promise<void>> = [];
 
-  // /api/v1/me — always prefetch (null for not-logged-in to avoid 401 roundtrip)
-  promises.push(
-    (userId
-      ? User.findByPk(userId).then((me) => { data["/api/v1/me"] = me ?? null; })
-      : Promise.resolve().then(() => { data["/api/v1/me"] = null; })
-    ),
-  );
-
   // Home timeline
   if (urlPath === "/" || urlPath === "") {
     promises.push(
