@@ -40,15 +40,28 @@ soundRouter.post("/sounds", async (req, res) => {
   if (title) metadataArgs.push("-metadata", `title=${title}`);
 
   try {
-    await execFileAsync("ffmpeg", [
-      "-i", tmpInput,
-      ...metadataArgs,
-      "-vn",
-      "-b:a", "96k",
-      "-ac", "1",
-      "-y",
-      outputPath,
-    ]);
+    // MP3 매직바이트 체크 (ID3 태그 또는 MPEG frame sync)
+    const b0 = (req.body as Buffer)[0];
+    const b1 = (req.body as Buffer)[1];
+    const b2 = (req.body as Buffer)[2];
+    const isMP3 =
+      (b0 === 0x49 && b1 === 0x44 && b2 === 0x33) ||
+      (b0 === 0xFF && ((b1 ?? 0) & 0xE0) === 0xE0);
+
+    if (isMP3) {
+      // 이미 MP3이면 그대로 복사 (ffmpeg 스킵)
+      await fs.writeFile(outputPath, req.body);
+    } else {
+      await execFileAsync("ffmpeg", [
+        "-i", tmpInput,
+        ...metadataArgs,
+        "-vn",
+        "-b:a", "96k",
+        "-ac", "1",
+        "-y",
+        outputPath,
+      ]);
+    }
   } catch {
     await fs.unlink(tmpInput).catch(() => {});
     throw new httpErrors.BadRequest("Invalid audio file or conversion failed");
