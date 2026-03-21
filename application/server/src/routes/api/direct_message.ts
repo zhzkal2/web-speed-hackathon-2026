@@ -53,7 +53,7 @@ directMessageRouter.get("/dm", async (req, res) => {
           isRead: false,
         },
         include: senderInclude,
-        order: [["createdAt", "ASC"]],
+        order: [["createdAt", "DESC"]],
       });
 
       const messages = [lastMessage.toJSON()];
