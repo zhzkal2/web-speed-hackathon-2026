@@ -110,7 +110,7 @@ const config = {
       maxAsyncRequests: 25,
       cacheGroups: {
         react: {
-          test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-redux|redux)[\\/]/,
+          test: /[\\/]node_modules[\\/](react|react-dom|react-router)[\\/]/,
           name: "vendor-react",
           chunks: "all",
           priority: 20,
