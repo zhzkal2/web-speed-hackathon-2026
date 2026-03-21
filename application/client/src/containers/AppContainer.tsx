@@ -86,19 +86,6 @@ export const AppContainer = () => {
   const authModalId = useId();
   const newPostModalId = useId();
 
-  const [authModalMounted, setAuthModalMounted] = useState(false);
-  const [newPostModalMounted, setNewPostModalMounted] = useState(false);
-
-  useEffect(() => {
-    const handleToggle = (e: Event) => {
-      const target = e.target as HTMLElement;
-      if (target.id === authModalId) setAuthModalMounted(true);
-      if (target.id === newPostModalId) setNewPostModalMounted(true);
-    };
-    document.addEventListener("toggle", handleToggle, true);
-    return () => document.removeEventListener("toggle", handleToggle, true);
-  }, [authModalId, newPostModalId]);
-
   useTitle("CaX");
 
   return (
@@ -145,13 +132,9 @@ export const AppContainer = () => {
         </Suspense>
       </AppPage>
 
-      {!isLoadingActiveUser && authModalMounted && (
+      {!isLoadingActiveUser && (
         <Suspense>
           <AuthModalContainer id={authModalId} onUpdateActiveUser={setActiveUser} />
-        </Suspense>
-      )}
-      {!isLoadingActiveUser && newPostModalMounted && (
-        <Suspense>
           <NewPostModalContainer id={newPostModalId} />
         </Suspense>
       )}
