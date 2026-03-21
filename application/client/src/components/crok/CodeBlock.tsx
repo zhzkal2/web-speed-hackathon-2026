@@ -1,7 +1,39 @@
 import { ComponentProps, isValidElement, lazy, ReactElement, ReactNode, Suspense, useEffect, useState } from "react";
 
 const SyntaxHighlighter = lazy(() =>
-  import("react-syntax-highlighter").then((m) => ({ default: m.default })),
+  import("react-syntax-highlighter/dist/esm/light").then(async (m) => {
+    const [js, ts, python, bash, json, css, html, sql, java, go, rust, cpp, markdown] =
+      await Promise.all([
+        import("react-syntax-highlighter/dist/esm/languages/hljs/javascript"),
+        import("react-syntax-highlighter/dist/esm/languages/hljs/typescript"),
+        import("react-syntax-highlighter/dist/esm/languages/hljs/python"),
+        import("react-syntax-highlighter/dist/esm/languages/hljs/bash"),
+        import("react-syntax-highlighter/dist/esm/languages/hljs/json"),
+        import("react-syntax-highlighter/dist/esm/languages/hljs/css"),
+        import("react-syntax-highlighter/dist/esm/languages/hljs/xml"),
+        import("react-syntax-highlighter/dist/esm/languages/hljs/sql"),
+        import("react-syntax-highlighter/dist/esm/languages/hljs/java"),
+        import("react-syntax-highlighter/dist/esm/languages/hljs/go"),
+        import("react-syntax-highlighter/dist/esm/languages/hljs/rust"),
+        import("react-syntax-highlighter/dist/esm/languages/hljs/cpp"),
+        import("react-syntax-highlighter/dist/esm/languages/hljs/markdown"),
+      ]);
+    const SHL = m.default;
+    SHL.registerLanguage("javascript", js.default);
+    SHL.registerLanguage("typescript", ts.default);
+    SHL.registerLanguage("python", python.default);
+    SHL.registerLanguage("bash", bash.default);
+    SHL.registerLanguage("json", json.default);
+    SHL.registerLanguage("css", css.default);
+    SHL.registerLanguage("html", html.default);
+    SHL.registerLanguage("sql", sql.default);
+    SHL.registerLanguage("java", java.default);
+    SHL.registerLanguage("go", go.default);
+    SHL.registerLanguage("rust", rust.default);
+    SHL.registerLanguage("cpp", cpp.default);
+    SHL.registerLanguage("markdown", markdown.default);
+    return { default: SHL };
+  }),
 );
 
 let cachedStyle: Record<string, React.CSSProperties> | null = null;

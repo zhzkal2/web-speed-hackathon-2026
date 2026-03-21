@@ -122,7 +122,7 @@ const config = {
           priority: 15,
         },
         syntax: {
-          test: /[\\/]node_modules[\\/](react-syntax-highlighter|highlight\.js|refractor|prismjs)/,
+          test: /[\\/]node_modules[\\/](react-syntax-highlighter|highlight\.js|lowlight|refractor|prismjs)/,
           name: "vendor-syntax",
           chunks: "async",
           priority: 15,
